@@ -43,6 +43,7 @@
    #:service-descriptor
    #:protobuf-enum
    #:protobuf-enum-value
+   #:map-descriptor
    #:protobuf-type-alias                ; Lisp-only extension
 
    ;; Conditions
