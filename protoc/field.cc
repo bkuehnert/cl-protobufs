@@ -209,23 +209,34 @@ void GenerateField(io::Printer* printer, const FieldDescriptor* field) {
   std::map<std::string, std::string> vars;
   vars["name"] = FieldLispName(field);
   vars["tag"] = StrCat(field->number());
-  vars["type"] = FieldLispType(field);
-  vars["label"] = FieldLispLabel(field);
-  vars["typename"] = FieldTypeName(field);
-  vars["packed"] = field->options().packed() ? " :packed cl:t" : "";
-  vars["lazy"] = field->options().lazy() ? " :lazy cl:t" : "";
-  vars["default"] = field->has_default_value()
-                        ? StrCat(" :default ", FieldLispDefault(field))
-                        : "";
-  printer->Print(vars,
-                 "\n($name$ "
-                 " :index $tag$ "
-                 " :type $type$"
-                 " :label $label$"
-                 " :typename \"$typename$\""
-                 "$default$"
-                 "$packed$"
-                 "$lazy$)");
+  if(field->is_map()) {
+    vars["key-type"] = FieldLispType(field->message_type()->field(0));
+    vars["val-type"] = FieldLispType(field->message_type()->field(1));
+    printer->Print(vars,
+                    "\n(proto:define-map $name$\n"
+                    "  (:conc-name \"\"\n"
+                    "   :index $tag$\n"
+                    "   :val-type $val-type$\n"
+                    "   :key-type $key-type$))");
+  } else {
+    vars["type"] = FieldLispType(field);
+    vars["label"] = FieldLispLabel(field);
+    vars["typename"] = FieldTypeName(field);
+    vars["packed"] = field->options().packed() ? " :packed cl:t" : "";
+    vars["lazy"] = field->options().lazy() ? " :lazy cl:t" : "";
+    vars["default"] = field->has_default_value()
+        ? StrCat(" :default ", FieldLispDefault(field))
+        : "";
+    printer->Print(vars,
+                   "\n($name$ "
+                   " :index $tag$ "
+                   " :type $type$"
+                   " :label $label$"
+                   " :typename \"$typename$\""
+                   "$default$"
+                   "$packed$"
+                   "$lazy$)");
+  }
   printer->Annotate("name", field);
 }
 
