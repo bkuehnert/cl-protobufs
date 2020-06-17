@@ -64,6 +64,7 @@ Inside of those macros there may also be define-* macros:
 - define-extend
 - define-service
 - define-type-alias
+- define-map
 
 The most common define-* macros we will see are the macros that
 define messages, which generate PROTOBUF-MESSAGE classes and
@@ -417,6 +418,59 @@ Parameters:
           `(progn (with-proto-source-location (,type ,name protobuf-enum ,@source-location)
                     ,@forms))
           `(progn ,@forms)))))
+
+
+(defmacro define-map (type (&key conc-name name index key-type val-type source-location))
+"Define a lisp type given the data for a protobuf map type.
+
+Parameters:
+  TYPE: Map type name
+  CONC-NAME: Prefix to the defaultly generated protobuf map name.
+  NAME: Override for defaultly generated field name
+  INDEX: Index of this map type in the field.
+  KEY-TYPE: Type of keys maintained by map.
+  VAL-TYPE: Type of values maintained by map.
+  SOURCE-LOCATION: The location of the source code for this define-map."
+  (check-type index integer)
+  (let* ((slot      (or type (and name (proto->slot-name name *package*))))
+         (name      (or name (class-name->proto type)))
+         (conc-name (conc-name-for-type name conc-name))
+         (reader    (let ((msg-conc (proto-conc-name *protobuf*)))
+                      (and msg-conc
+                           (fintern "~A~A" msg-conc slot))))
+         (internal-slot-name (fintern "%~A" slot))
+         (mslot  (make-field-data
+                  :internal-slot-name internal-slot-name
+                  :external-slot-name slot
+                  :type 'hash-table
+                  :initform `(make-hash-table)
+                  :accessor reader))
+         (mfield (make-instance 'field-descriptor
+                  :name (slot-name->proto slot)
+                  :type "hash-table"
+                  :class type
+                  :qualified-name (make-qualified-name *protobuf* (slot-name->proto slot))
+                  :set-type type
+                  :index index
+                  :internal-field-name internal-slot-name
+                  :external-field-name slot
+                  :reader reader))
+         (table  (make-map-descriptor
+                  :class type
+                  :name name
+                  :key-type key-type
+                  :val-type val-type)))
+    (with-collectors ((forms collect-form))
+      (collect-form `(record-protobuf-object ',type ,table :map))
+      `(progn
+         define-map
+         ,table
+         ,(if source-location
+              `((with-proto-source-location (,type ,name protobuf-map ,@source-location))
+                ,@forms)
+              `(,@forms))
+         ,mfield
+         ,mslot))))
 
 (declaim (inline proto-%bytes))
 (defun proto-%bytes (obj)
@@ -804,14 +858,14 @@ Arguments:
              (assert (eq (car result) 'progn) ()
                      "The macroexpansion for ~S failed" field)
              (map () #'collect-type-form (cdr result))))
-          ((define-extension define-group)
+          ((define-extension define-group define-map)
            (destructuring-bind (&optional progn model-type model definers extra-field extra-slot)
                (macroexpand-1 field env)
              (assert (eq progn 'progn) ()
                      "The macroexpansion for ~S failed" field)
              (map () #'collect-form definers)
              (case model-type
-               ((define-group)
+               ((define-group define-map)
                 (when extra-slot
                   (collect-slot extra-slot))
                 (setf (proto-field-offset extra-field) field-offset)
@@ -1207,14 +1261,14 @@ Arguments:
              (assert (eq (car result) 'progn) ()
                      "The macroexpansion for ~S failed" field)
              (map () #'collect-form (cdr result))))
-          ((define-extension define-group)
+          ((define-extension define-group define-map)
            (destructuring-bind (&optional progn model-type model definers extra-field extra-slot)
                (macroexpand-1 field env)
              (assert (eq progn 'progn) ()
                      "The macroexpansion for ~S failed" field)
              (map () #'collect-type-form definers)
              (case model-type
-               ((define-group)
+               ((define-group define-map)
                 (setf (proto-field-offset extra-field) field-offset)
                 (incf field-offset)
                 (collect-non-lazy-field extra-field)
