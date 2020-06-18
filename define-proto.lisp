@@ -443,7 +443,7 @@ Parameters:
                   :internal-slot-name internal-slot-name
                   :external-slot-name slot
                   :type 'hash-table
-                  :initform `(make-hash-table)
+                  :initform '(make-hash-table)
                   :accessor reader))
          (mfield (make-instance 'field-descriptor
                   :name (slot-name->proto slot)
