@@ -460,17 +460,13 @@ Parameters:
                   :name name
                   :key-type key-type
                   :val-type val-type)))
-    (with-collectors ((forms collect-form))
-      (collect-form `(record-protobuf-object ',type ,table :map))
-      `(progn
-         define-map
-         ,table
-         ,(if source-location
-              `((with-proto-source-location (,type ,name protobuf-map ,@source-location))
-                ,@forms)
-              `(,@forms))
-         ,mfield
-         ,mslot))))
+    (record-protobuf-object type table :map)
+    `(progn
+       define-map
+       ,table
+       nil
+       ,mfield
+       ,mslot)))
 
 (declaim (inline proto-%bytes))
 (defun proto-%bytes (obj)
