@@ -124,7 +124,7 @@
    (:module "map-test"
     :serial t
     :pathname ""
-    :components ((:protobuf-source-file "map")
+    :components ((:protobuf-source-file "map-proto")
 		 (:file "map-test")))
 
    (:module "import-test"

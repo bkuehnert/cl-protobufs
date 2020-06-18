@@ -11,7 +11,7 @@
         #:cl-protobufs)
   (:export :run))
 
-(in-package #:cl-protobufs.test.case-preservation-test)
+(in-package #:cl-protobufs.test.map-test)
 
 (defsuite map-tests ())
 
